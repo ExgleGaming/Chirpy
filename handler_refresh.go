@@ -33,16 +33,9 @@ func (cfg *apiConfig) handlerRefresh(w http.ResponseWriter, r *http.Request) {
 		respondWithError(w, http.StatusUnauthorized, "refresh token is expired or revoked", nil)
 		return
 	}
-
-	// Getting the user to make the auth token based on the user getting the refresh token
-	user, err := cfg.db.GetUserById(context.Background(), refreshToken.UserID)
-	if err != nil {
-		respondWithError(w, http.StatusUnauthorized, "user not found", err)
-		return
-	}
-
+	
 	// Make JWT for user
-	token, err := auth.MakeJWT(user.ID, cfg.JWTSecret, time.Hour)
+	token, err := auth.MakeJWT(refreshToken.UserID, cfg.JWTSecret, time.Hour)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't create access JWT", err)
 		return
