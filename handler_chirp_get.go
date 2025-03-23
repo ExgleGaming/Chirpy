@@ -15,7 +15,7 @@ func (cfg *apiConfig) handlerGetChirps(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	chirps, err := cfg.db.GetChirp(context.Background())
+	chirps, err := cfg.db.GetChirps(context.Background())
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't get chirps", err)
 		return
