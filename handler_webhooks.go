@@ -17,9 +17,13 @@ func (cfg *apiConfig) handlerUpdateUserChirpyRed(w http.ResponseWriter, r *http.
 		} `json:"data"`
 	}
 
-	_, err := auth.GetAPIKey(r.Header)
+	key, err := auth.GetAPIKey(r.Header)
 	if err != nil {
-		respondWithError(w, http.StatusUnauthorized, "Unauthorized", err)
+		respondWithError(w, http.StatusUnauthorized, "Couldn't find api key", err)
+		return
+	}
+	if key != cfg.polkaSecret {
+		respondWithError(w, http.StatusUnauthorized, "API key is invalid", err)
 		return
 	}
 
