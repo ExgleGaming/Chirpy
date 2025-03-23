@@ -1,7 +1,9 @@
 package main
 
 import (
+	"database/sql"
 	"encoding/json"
+	"github.com/exglegaming/Chirpy/internal/database"
 	"net/http"
 	"time"
 
@@ -41,20 +43,32 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 
-	expirationTime := time.Hour
-	if req.ExpiresInSecs > 0 && req.ExpiresInSecs < 3600 {
-		expirationTime = time.Duration(req.ExpiresInSecs) * time.Second
-	}
-
 	accessToken, err := auth.MakeJWT(
 		user.ID,
 		cfg.JWTSecret,
-		expirationTime,
+		time.Hour,
 	)
 	if err != nil {
 		respondWithError(w, http.StatusInternalServerError, "Couldn't create access JWT", err)
 		return
 	}
+
+	refreshToken, err := auth.MakeRefreshToken()
+	if err != nil {
+		respondWithError(w, http.StatusInternalServerError, "Couldn't create refresh token", err)
+	}
+
+	refreshExpiry := time.Now().Add(60 * 24 * time.Hour)
+
+	refresh, err := cfg.db.CreateRefreshTokens(r.Context(), database.CreateRefreshTokensParams{
+		Token:     refreshToken,
+		UserID:    user.ID,
+		ExpiresAt: refreshExpiry,
+		RevokedAt: sql.NullTime{
+			Time:  time.Time{},
+			Valid: false,
+		},
+	})
 
 	respondWithJSON(w, http.StatusOK, response{
 		User: User{
@@ -63,7 +77,7 @@ func (cfg *apiConfig) handlerLogin(w http.ResponseWriter, r *http.Request) {
 			UpdatedAt: user.UpdatedAt,
 			Email:     user.Email,
 		},
-		Token: accessToken,
+		Token:        accessToken,
+		RefreshToken: refresh.Token,
 	})
-
 }
